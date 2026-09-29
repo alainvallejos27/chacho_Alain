@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Cacho Boliviano PRO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Fuente estilo manuscrito/papel -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=DM+Sans:wght@400;500;600;700;800&family=Patrick+Hand&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --ink: #142a31;
+      --ink-soft: #587178;
+      --felt: #123c3d;
+      --coral: #f26b4f;
+      --coral-dark: #d85038;
+      --lime: #d5e67b;
+      --paper: #fffaf0;
+    }
+
+    * { box-sizing: border-box; }
+    body { background: #0b2027; color: #fff; touch-action: manipulation; font-family: 'DM Sans', sans-serif; }
+    
+    .font-handwriting { font-family: 'Caveat', cursive; }
+    .font-hand-clean { font-family: 'Patrick Hand', cursive; }
+
+    header {
+      height: 64px !important;
+      padding: 0 24px !important;
+      background: rgba(11, 32, 39, 0.96) !important;
+      border-bottom: 1px solid rgba(213, 230, 123, 0.16) !important;
+      box-shadow: 0 8px 24px rgba(4, 17, 22, 0.18);
+    }
+    header h1 { color: var(--lime) !important; letter-spacing: .06em; font-size: 15px !important; }
+    header #btn-new-game {
+      background: var(--coral) !important;
+      color: #fff !important;
+      border-radius: 999px;
+      padding: 10px 17px;
+      box-shadow: 0 5px 14px rgba(242, 107, 79, .25);
+    }
+    header #btn-new-game:hover { background: var(--coral-dark) !important; }
+    #sound-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-right: 9px;
+      padding: 9px 12px;
+      border: 1px solid rgba(213, 230, 123, .25);
+      border-radius: 999px;
+      background: rgba(213, 230, 123, .08);
+      color: var(--lime);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      transition: background .2s ease, color .2s ease, transform .2s ease;
+    }
+    #sound-toggle:hover { background: rgba(213, 230, 123, .16); transform: translateY(-1px); }
+    #sound-toggle.is-muted { color: #9caaa9; border-color: rgba(156, 170, 169, .22); background: rgba(156, 170, 169, .08); }
+    #sound-toggle .sound-icon { font-size: 16px; line-height: 1; }
+    .header-actions { display: flex; align-items: center; }
+
+    #sec-tapete {
+      background: linear-gradient(135deg, #123c3d 0%, #0d3033 58%, #0b292e 100%) !important;
+      border-color: rgba(213, 230, 123, .14) !important;
+      padding: 22px !important;
+    }
+    #sec-tapete::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: .28;
+      background-image: radial-gradient(rgba(213, 230, 123, .2) 1px, transparent 1px);
+      background-size: 22px 22px;
+    }
+    #sec-tapete > * { position: relative; }
+    #sec-tapete > div:first-child > span:first-child { color: var(--lime) !important; font-size: 13px; }
+    #txt-roll-status {
+      background: rgba(213, 230, 123, .12) !important;
+      border: 1px solid rgba(213, 230, 123, .35) !important;
+      color: var(--lime) !important;
+      padding: 8px 13px;
+      border-radius: 999px;
+    }
+    #dice-layer {
+      border-color: rgba(213, 230, 123, .12) !important;
+      border-radius: 24px !important;
+      background: rgba(4, 23, 27, .34) !important;
+    }
+    #cacho-cup {
+      background: linear-gradient(145deg, #b85d3a, #793522) !important;
+      border-color: #572516 !important;
+      box-shadow: 0 14px 22px rgba(3, 13, 16, .42), inset 5px 4px 8px rgba(255, 190, 145, .2) !important;
+    }
+    .real-die {
+      width: 58px;
+      height: 58px;
+      border-radius: 15px;
+      background: #fffdf7;
+      box-shadow: 0 10px 20px rgba(1, 14, 18, .4), inset 0 -2px 0 rgba(20, 42, 49, .12);
+    }
+    .real-die.selected { outline: 3px solid var(--lime); box-shadow: 0 0 0 6px rgba(213, 230, 123, .16), 0 10px 20px rgba(1, 14, 18, .4); }
+    .pip { background: var(--ink); }
+    .pip-red { background: var(--coral) !important; }
+    #btn-roll {
+      background: var(--coral) !important;
+      border-radius: 14px;
+      min-height: 48px;
+      box-shadow: 0 9px 20px rgba(242, 107, 79, .25);
+      letter-spacing: .02em;
+    }
+    #btn-roll:hover { background: var(--coral-dark) !important; }
+
+    .paper-sheet {
+      max-width: 510px !important;
+      background-color: var(--paper) !important;
+      background-image: radial-gradient(#e6dac8 1px, transparent 1px) !important;
+      background-size: 18px 18px !important;
+      box-shadow: -12px 0 30px rgba(4, 17, 22, .16), inset 0 0 30px rgba(166, 119, 69, .08) !important;
+      padding: 24px !important;
+    }
+    #player-tabs { border-color: rgba(20, 42, 49, .7) !important; }
+    #player-tabs button { border-radius: 999px !important; padding: 8px 13px !important; }
+    #lbl-current-team { color: var(--ink) !important; font-size: 36px; }
+    #txt-total-score { color: var(--coral-dark); }
+    .score-slot { transition: background-color .18s ease, transform .18s ease; }
+    .score-slot:hover { background: rgba(242, 107, 79, .1) !important; transform: translateY(-1px); }
+    .score-slot .cell-txt { color: var(--ink) !important; }
+    .paper-sheet .grid,
+    .paper-sheet > div > div > div { border-color: var(--ink) !important; }
+    .paper-sheet .grid { box-shadow: 0 8px 18px rgba(20, 42, 49, .12); }
+    .paper-sheet [data-cell] > span:first-child { color: var(--ink-soft) !important; }
+    .paper-sheet p { color: var(--ink-soft) !important; }
+    #standings-panel {
+      margin: 4px 0 12px;
+      padding: 12px;
+      border: 1px solid rgba(20, 42, 49, .16);
+      border-radius: 14px;
+      background: rgba(255,255,255,.52);
+      box-shadow: 0 5px 12px rgba(20, 42, 49, .08);
+    }
+    #standings-panel h3 { margin: 0 0 8px; color: var(--ink); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+    .standing-row { display: grid; grid-template-columns: 22px 1fr auto; gap: 6px; align-items: center; padding: 5px 6px; border-radius: 8px; color: var(--ink); font-size: 12px; }
+    .standing-row.is-current { background: rgba(242, 107, 79, .14); font-weight: 800; }
+    .standing-row .standing-score { color: var(--coral-dark); font-weight: 800; }
+    .standing-row.is-retired { opacity: .45; text-decoration: line-through; }
+
+    #btn-flip { background: #b84f20 !important; border-color: rgba(255, 223, 190, .25) !important; min-height: 48px; }
+    #btn-flip:hover { background: #d15d29 !important; }
+    nav { height: 58px !important; background: #0b2027 !important; border-color: rgba(213, 230, 123, .16) !important; }
+    nav button { letter-spacing: .06em; }
+    nav button:first-child { color: var(--lime); background: rgba(213, 230, 123, .08); }
+
+    #setup-modal > div, #score-choice-modal > div {
+      background: #14363a !important;
+      border: 1px solid rgba(213, 230, 123, .28) !important;
+      border-radius: 24px !important;
+      box-shadow: 0 24px 60px rgba(2, 12, 15, .45) !important;
+    }
+    #setup-modal h2, #score-choice-modal h3 { color: var(--lime) !important; }
+    #setup-modal input, #setup-modal select { background: #0b292e !important; border-color: rgba(213, 230, 123, .2) !important; color: #fff !important; }
+    #btn-start { background: var(--coral) !important; border-radius: 14px; min-height: 44px; }
+
+    @media (max-width: 768px) {
+      header { height: 56px !important; padding: 0 14px !important; }
+      header h1 { font-size: 12px !important; }
+      #sound-toggle { padding: 8px 10px; margin-right: 5px; }
+      #sound-toggle .sound-label { display: none; }
+      #sec-tapete { padding: 14px !important; }
+      .real-die { width: 48px; height: 48px; padding: 4px; gap: 2px; }
+      #lbl-current-team { font-size: 32px; }
+      .paper-sheet { padding: 16px !important; }
+    }
+
+    /* Estilo de Hoja de Papel Tradicional */
+    .paper-sheet {
+      background-color: #fcfaf2;
+      background-image: radial-gradient(#e2d9c8 1px, transparent 0);
+      background-size: 16px 16px;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.05), 0 4px 15px rgba(0,0,0,0.3);
+    }
+
+    /* Líneas dibujadas estilo lápiz/lapicero */
+    .pencil-grid {
+      border-color: #2b2b2b;
+    }
+
+    /* Dado real */
+    .real-die {
+      position: absolute; 
+      width: 52px; 
+      height: 52px; 
+      background: #fff;
+      border-radius: 10px; 
+      box-shadow: 2px 4px 12px rgba(0,0,0,0.6);
+      display: grid; 
+      grid-template-columns: repeat(3, 1fr); 
+      gap: 3px;
+      padding: 5px; 
+      cursor: pointer; 
+      transition: transform 0.2s, top 0.3s, left 0.3s;
+    }
+    @media (max-width: 768px) {
+      .real-die { width: 44px; height: 44px; padding: 4px; gap: 2px; }
+    }
+    .real-die.selected { outline: 3px solid #f59e0b; transform: scale(1.1); }
+    .pip { background: #111; border-radius: 50%; width: 100%; height: 100%; }
+    .pip-red { background: #dc2626 !important; }
+
+    /* Vasito de cacho */
+    #cacho-cup {
+      width: 70px; 
+      height: 85px; 
+      background: #5c2d16; 
+      border-radius: 8px 8px 25px 25px;
+      border: 3px solid #3d1c0c; 
+      position: absolute; 
+      transition: all 0.4s ease-out;
+      cursor: pointer; 
+      z-index: 20; 
+      box-shadow: 0 10px 20px rgba(0,0,0,0.6);
+    }
+    @media (max-width: 768px) {
+      #cacho-cup { width: 55px; height: 70px; }
+    }
+    #cacho-cup.center { top: 35%; left: 45%; transform: translate(-50%, -50%) scale(1.2) rotate(-15deg); }
+    #cacho-cup.corner { top: 15px; right: 15px; transform: scale(0.85) rotate(20deg); }
+
+    /* Casilla tachada */
+    .crossed-out {
+      position: relative;
+    }
+    .crossed-out::after {
+      content: "X";
+      position: absolute;
+      inset: 0;
+      color: #b91c1c;
+      font-family: 'Caveat', cursive;
+      font-size: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.85;
+    }
+
+    /* Mesa principal inspirada en el tapete de juego de la referencia */
+    #sec-tapete {
+      gap: 18px;
+      background: #1d0f0a !important;
+      padding: 20px 24px 24px !important;
+      min-height: 0;
+    }
+    .table-hud {
+      min-height: 78px;
+      padding: 15px 20px;
+      border: 1px solid rgba(191, 93, 18, .62);
+      border-radius: 18px;
+      background: linear-gradient(135deg, #381b0d, #2a140b);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, .2);
+    }
+    .table-hud > span:first-child::before {
+      content: '●';
+      color: #29c47a;
+      margin-right: 8px;
+      font-size: 14px;
+    }
+    .table-hud > span:first-child {
+      color: #f5aa14 !important;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .table-hud #txt-player-turn {
+      display: inline-block;
+      margin-left: 6px;
+      color: #fff !important;
+      font-size: 23px;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+    .table-hud #txt-roll-status {
+      color: #f5aa14 !important;
+      background: transparent !important;
+      border: 0 !important;
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    .game-table {
+      min-height: 0;
+      margin: 0 !important;
+      border: 15px solid #5a321e !important;
+      border-radius: 28px !important;
+      background-color: #073d31 !important;
+      background-image: radial-gradient(rgba(153, 209, 156, .13) 1.2px, transparent 1.2px) !important;
+      background-size: 12px 12px !important;
+      box-shadow: inset 0 0 0 1px rgba(231, 176, 83, .08), 0 16px 30px rgba(0, 0, 0, .28);
+    }
+    .game-table::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at 50% 42%, rgba(41, 160, 116, .16), transparent 46%);
+    }
+    .table-prompt {
+      position: absolute;
+      z-index: 4;
+      top: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: max-content;
+      max-width: calc(100% - 32px);
+      padding: 10px 24px;
+      border: 1px solid rgba(172, 200, 120, .24);
+      border-radius: 999px;
+      color: #a8b779;
+      background: rgba(2, 37, 29, .72);
+      font-size: 16px;
+      font-weight: 700;
+      text-align: center;
+    }
+    #dice-layer {
+      position: absolute !important;
+      inset: 0;
+      z-index: 2;
+      border: 0 !important;
+      background: transparent !important;
+    }
+    .real-die {
+      width: 74px !important;
+      height: 74px !important;
+      padding: 8px !important;
+      border-radius: 17px !important;
+      box-shadow: 0 8px 0 rgba(180, 183, 181, .85), 0 14px 20px rgba(1, 20, 17, .34) !important;
+      z-index: 3;
+    }
+    .real-die.selected {
+      outline: 3px solid #f5aa14 !important;
+      box-shadow: 0 0 0 7px rgba(245, 170, 20, .16), 0 8px 0 rgba(180, 183, 181, .85), 0 14px 20px rgba(1, 20, 17, .34) !important;
+    }
+    #cacho-cup {
+      width: 138px !important;
+      height: 166px !important;
+      border-width: 3px !important;
+      border-radius: 12px 12px 42px 42px !important;
+      z-index: 5 !important;
+    }
+    #cacho-cup::before {
+      content: 'CACHO';
+      position: absolute;
+      top: 28%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(90deg);
+      color: rgba(255, 205, 120, .42);
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: .12em;
+    }
+    #cacho-cup::after {
+      content: '';
+      position: absolute;
+      left: -3px;
+      right: -3px;
+      top: 30px;
+      height: 2px;
+      background: rgba(255, 194, 107, .55);
+      box-shadow: 0 16px 0 rgba(255, 194, 107, .4);
+    }
+    #cacho-cup.center { top: 72% !important; left: 32% !important; transform: translate(-50%, -50%) rotate(0deg) !important; }
+    #cacho-cup.corner { top: 24px !important; right: 22px !important; transform: scale(.72) rotate(7deg) !important; transform-origin: top right; }
+    .table-actions {
+      position: absolute;
+      z-index: 8;
+      left: auto;
+      right: 22px;
+      bottom: 28px;
+      width: auto;
+    }
+    #btn-roll {
+      min-height: 68px !important;
+      border: 2px solid #15100b;
+      outline: 2px solid rgba(255, 239, 191, .85);
+      border-radius: 19px !important;
+      background: linear-gradient(135deg, #ffaf13, #d7650c) !important;
+      color: #351608 !important;
+      font-size: 18px !important;
+      font-weight: 800 !important;
+      box-shadow: 0 8px 0 #9a4108, 0 15px 22px rgba(0, 0, 0, .26) !important;
+    }
+    #btn-roll:hover { background: linear-gradient(135deg, #ffc332, #e97912) !important; }
+    #btn-roll:active { transform: translateY(4px); box-shadow: 0 4px 0 #9a4108 !important; }
+    #btn-flip {
+      min-height: 68px !important;
+      min-width: 68px !important;
+      margin-left: 10px !important;
+      border-radius: 17px !important;
+      background: linear-gradient(145deg, #8d421d, #57230f) !important;
+      border: 2px solid rgba(255, 205, 126, .36) !important;
+      color: #ffd27d !important;
+      display: grid !important;
+      place-items: center;
+      position: relative;
+      padding: 6px !important;
+      box-shadow: 0 6px 0 #35150a, 0 10px 16px rgba(0, 0, 0, .24) !important;
+    }
+    #btn-flip .flip-die-face { display: grid; place-items: center; width: 38px; height: 38px; border: 2px solid currentColor; border-radius: 10px; font-size: 27px; line-height: 1; }
+    #btn-flip .flip-arrow { display: block; animation: flip-arrow-spin 2.2s linear infinite; }
+    #btn-flip .flip-count { position: absolute; right: -7px; top: -9px; min-width: 22px; height: 22px; padding: 1px 5px; border-radius: 999px; background: #f5aa14; color: #351608; font-size: 12px; font-weight: 800; }
+    #btn-flip:disabled { filter: grayscale(.4); opacity: .42; }
+    .ranking-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+    .ranking-list li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 11px; border-radius: 10px; background: rgba(255,255,255,.08); }
+    .ranking-list li span { color: #f5c451; font-weight: 800; }
+    @keyframes flip-arrow-spin { to { transform: rotate(360deg); } }
+    .table-prompt.is-hidden { opacity: 0; visibility: hidden; transform: translate(-50%, -8px); }
+    .table-prompt { transition: opacity .25s ease, visibility .25s ease, transform .25s ease; }
+    @media (max-width: 768px) {
+      #sec-tapete { gap: 10px; padding: 12px !important; }
+      .table-hud { min-height: 62px; padding: 10px 13px; }
+      .table-hud #txt-player-turn { font-size: 18px; }
+      .table-hud #txt-roll-status { font-size: 10px; }
+      .game-table { min-height: 360px; border-width: 9px !important; border-radius: 21px !important; }
+      .table-prompt { top: 17px; padding: 8px 13px; font-size: 11px; }
+      .real-die { width: 54px !important; height: 54px !important; padding: 6px !important; }
+      #cacho-cup { width: 92px !important; height: 118px !important; }
+      #cacho-cup.center { top: 70% !important; left: 30% !important; }
+      .table-actions { right: 14px; bottom: 18px; }
+      #btn-roll { min-height: 54px !important; font-size: 13px !important; }
+      #btn-flip { min-height: 54px !important; min-width: 54px !important; }
+      #btn-flip .flip-die-face { width: 32px; height: 32px; font-size: 22px; }
+    }
+    @media (min-width: 769px) and (max-height: 600px) {
+      .game-table { min-height: 260px; }
+      .table-prompt { top: 16px; font-size: 13px; padding: 8px 16px; }
+      #cacho-cup { width: 100px !important; height: 126px !important; }
+      #cacho-cup.center { top: 82% !important; left: 28% !important; }
+      #cacho-cup::before { font-size: 13px; }
+      #btn-roll { min-height: 52px !important; font-size: 14px !important; }
+      .table-actions { right: 16px; bottom: 16px; }
+    }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col font-sans">
+
+  <!-- BARRA SUPERIOR -->
+  <header class="h-12 bg-[#180f0a] border-b border-[#381f12] flex items-center justify-between px-4 shrink-0 z-30">
+    <h1 class="text-amber-500 font-black text-sm md:text-base tracking-wide">🎲 CACHO BOLIVIANO</h1>
+    <div class="header-actions">
+      <button id="sound-toggle" type="button" aria-pressed="false" title="Activar sonido">
+        <span class="sound-icon">🔊</span><span class="sound-label">SONIDO</span>
+      </button>
+      <button id="btn-new-game" class="bg-amber-700 hover:bg-amber-600 text-amber-100 font-bold text-xs px-3 py-1.5 rounded-lg transition-colors">Nuevo Juego</button>
+    </div>
+  </header>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <main class="flex-1 relative overflow-hidden flex flex-col md:flex-row">
+    
+    <!-- TAPETE DE JUEGO (IZQUIERDA EN PC) -->
+    <section id="sec-tapete" class="flex-1 bg-[#0f2317] border-b md:border-b-0 md:border-r border-[#2d4d38] relative flex flex-col justify-between p-3 md:p-5 overflow-hidden">
+      <div class="table-hud flex items-center justify-between z-10">
+        <span class="text-xs md:text-sm font-bold text-amber-300">Turno: <span id="txt-player-turn" class="text-white font-extrabold"></span></span>
+        <span id="txt-roll-status" class="text-xs bg-[#1a3826] text-amber-200 px-3 py-1 rounded-full border border-amber-500/30 font-semibold">Tiro 1</span>
+      </div>
+
+      <div class="game-table flex-1 relative w-full h-full my-2 border border-emerald-900/40 rounded-2xl bg-[#0b1c12] overflow-hidden">
+        <div class="table-prompt">Haz clic en el Cacho para agitar y lanzar los dados</div>
+        <div id="cacho-cup" class="center"></div>
+        <div id="dice-layer" class="w-full h-full relative"></div>
+        <div class="table-actions flex gap-2 z-10 shrink-0"></div>
+      </div>
+    </section>
+
+    <!-- LIBRETA TRADICIONAL DE PAPEL (DERECHA EN PC) -->
+    <section id="sec-anotador" class="hidden md:flex flex-1 md:max-w-md lg:max-w-lg paper-sheet text-stone-900 flex-col shrink-0 border-t md:border-t-0 border-stone-400 overflow-y-auto p-4 md:p-6 justify-between">
+      
+      <div class="flex flex-col h-full">
+        <!-- POSICIONES Y PESTAÑAS DE JUGADORES / EQUIPOS -->
+        <div id="standings-panel" aria-live="polite"></div>
+        <div id="player-tabs" class="flex gap-2 overflow-x-auto pb-2 mb-2 border-b-2 border-stone-800"></div>
+
+        <!-- ENCABEZADO HOJA DE PAPEL -->
+        <div class="flex items-center justify-between my-2">
+          <span id="lbl-current-team" class="font-handwriting text-3xl font-bold text-stone-900 underline decoration-stone-700">EQUIPO A</span>
+          <div class="text-sm font-hand-clean font-bold bg-stone-200 text-stone-900 px-3 py-1 rounded border border-stone-400 shadow-sm">
+            TOTAL: <span id="txt-total-score" class="font-handwriting text-2xl font-bold">0</span>
+          </div>
+        </div>
+
+        <!-- TABLA TRADICIONAL DE CACHO (#) -->
+        <div class="w-full max-w-xs md:max-w-sm mx-auto my-auto flex flex-col items-center">
+          
+          <div class="grid grid-cols-3 w-full border-2 border-stone-900 rounded-lg overflow-hidden bg-white/50 shadow-md">
+            
+            <!-- FILA 1: BALAS (1) | ESCALERA | CUADRAS (4) -->
+            <div data-cell="balas" class="score-slot border-r-2 border-b-2 border-stone-900 p-2 min-h-[75px] md:min-h-[85px] flex flex-col justify-between cursor-pointer hover:bg-amber-100/50 relative">
+              <span class="text-[11px] font-bold text-stone-600 font-hand-clean">Balas (1)</span>
+              <span class="cell-txt font-handwriting text-3xl md:text-4xl text-center text-stone-900 font-bold">-</span>
+            </div>
+            
+            <div data-cell="escalera" class="score-slot border-r-2 border-b-2 border-stone-900 p-2 min-h-[75px] md:min-h-[85px] flex flex-col justify-between cursor-pointer hover:bg-amber-100/50 relative">
+              <span class="text-[10px] font-bold text-stone-600 text-center font-hand-clean">ES. (20/25)</span>
+              <span class="cell-txt font-handwriting text-3xl md:text-4xl text-center text-stone-900 font-bold">-</span>
+            </div>
+
+            <div data-cell="cuadras" class="score-slot border-b-2 border-stone-900 p-2 min-h-[75px] md:min-h-[85px] flex flex-col justify-between cursor-pointer hover:bg-amber-100/50 relative">
+              <span class="text-[11px] font-bold text-stone-600 text-right font-hand-clean">Cuadras (4)</span>
+              <span class="cell-txt font-handwriting text-3xl md:text-4xl text-center text-stone-900 font-bold">-</span>
+            </div>
+
+            <!-- FILA 2: TONTOS (2) | FULL | QUINAS (5) -->
+            <div data-cell="tontos" class="score-slot border-r-2 border-b-2 border-stone-900 p-2 min-h-[75px] md:min-h-[85px] flex flex-col justify-between cursor-pointer hover:bg-amber-100/50 relative">
+              <span class="text-[11px] font-bold text-stone-600 font-hand-clean">Tontos (2)</span>
+              <span class="cell-txt font-handwriting text-3xl md:text-4xl text-center text-stone-900 font-bold">-</span>
+            </div>
+
+            <div data-cell="full" class="score-slot border-r-2 border-b-2 border-stone-900 p-2 min-h-[75px] md:min-h-[85px] flex flex-col justify-between cursor-pointer hover:bg-amber-100/50 relative">
+              <span class="text-[10px] font-bold text-stone-600 text-center font-hand-clean">FULL (30/35)</span>
+              <span class="cell-txt font-handwriting text-3xl md:text-4xl text-center text-stone-900 font-bold">-</span>
+            </div>
+
+            <div data-cell="quinas" class="score-slot border-b-2 border-stone-900 p-2 min-h-[75px] md:min-h-[85px] flex flex-col justify-between cursor-pointer hover:bg-amber-100/50 relative">
+              <span class="text-[11px] font-bold text-stone-600 text-right font-hand-clean">Quinas (5)</span>
+              <span class="cell-txt font-handwriting text-3xl md:text-4xl text-center text-stone-900 font-bold">-</span>
+            </div>
+
+            <!-- FILA 3: TRICAS (3) | POKER | SENAS (6) -->
+            <div data-cell="tricas" class="score-slot border-r-2 border-stone-900 p-2 min-h-[75px] md:min-h-[85px] flex flex-col justify-between cursor-pointer hover:bg-amber-100/50 relative">
+              <span class="text-[11px] font-bold text-stone-600 font-hand-clean">Tricas (3)</span>
+              <span class="cell-txt font-handwriting text-3xl md:text-4xl text-center text-stone-900 font-bold">-</span>
+            </div>
+
+            <div data-cell="poker" class="score-slot border-r-2 border-stone-900 p-2 min-h-[75px] md:min-h-[85px] flex flex-col justify-between cursor-pointer hover:bg-amber-100/50 relative">
+              <span class="text-[10px] font-bold text-stone-600 text-center font-hand-clean">POKER (40/45)</span>
+              <span class="cell-txt font-handwriting text-3xl md:text-4xl text-center text-stone-900 font-bold">-</span>
+            </div>
+
+            <div data-cell="senas" class="score-slot p-2 min-h-[75px] md:min-h-[85px] flex flex-col justify-between cursor-pointer hover:bg-amber-100/50 relative">
+              <span class="text-[11px] font-bold text-stone-600 text-right font-hand-clean">Senas (6)</span>
+              <span class="cell-txt font-handwriting text-3xl md:text-4xl text-center text-stone-900 font-bold">-</span>
+            </div>
+
+          </div>
+
+          <!-- SECCIÓN INFERIOR DEDICADA A LA GRANDE / LA DORMIDA -->
+          <div class="w-full mt-2 border-2 border-stone-900 rounded-lg bg-white/50 p-2 flex items-center justify-between shadow-md">
+            <div data-cell="grande1" class="score-slot flex-1 border-r-2 border-stone-900 text-center cursor-pointer hover:bg-amber-100/50 p-1 relative">
+              <span class="text-[10px] font-bold text-stone-600 block font-hand-clean">GRANDE</span>
+              <span class="cell-txt font-handwriting text-2xl md:text-3xl text-stone-900 font-bold">-</span>
+            </div>
+            <div data-cell="grande2" class="score-slot flex-1 text-center cursor-pointer hover:bg-amber-100/50 p-1 relative">
+              <span class="text-[10px] font-bold text-stone-600 block font-hand-clean">DORMIDA</span>
+              <span class="cell-txt font-handwriting text-2xl md:text-3xl text-stone-900 font-bold">-</span>
+            </div>
+          </div>
+
+        </div>
+
+        <p class="text-center text-xs font-hand-clean font-bold text-stone-600 mt-3">
+          ✏️ Toca una casilla en la hoja para anotar tus puntos
+        </p>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- NAVEGACIÓN INFERIOR (SOLO EN CELULAR) -->
+  <nav class="md:hidden h-12 bg-[#180f0a] border-t border-[#381f12] grid grid-cols-2 text-xs font-bold shrink-0 z-30">
+    <button id="nav-btn-tapete" class="text-amber-500 bg-[#26160e] flex items-center justify-center gap-1">🎲 TAPETE</button>
+    <button id="nav-btn-anotador" class="text-stone-400 flex items-center justify-center gap-1">📝 ANOTADOR</button>
+  </nav>
+
+  <!-- MODAL JUGADORES -->
+  <div id="setup-modal" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+    <div class="bg-[#1c120c] border border-amber-900/50 rounded-2xl p-5 max-w-xs w-full text-amber-100 shadow-2xl">
+      <h2 class="font-bold text-center text-amber-400 mb-3 text-sm">Nuevo Juego de Cacho</h2>
+      <div class="flex gap-2 mb-3">
+        <button id="mode-ind" class="flex-1 bg-amber-700 text-white py-1.5 rounded-lg text-xs font-bold">Individual</button>
+        <button id="mode-par" class="flex-1 bg-stone-800 text-stone-400 py-1.5 rounded-lg text-xs font-bold">Parejas</button>
+      </div>
+      <div class="mb-3">
+        <label class="text-[11px] text-stone-400 block mb-1">Cantidad de Jugadores/Equipos:</label>
+        <select id="select-count" class="w-full bg-[#0d0704] border border-[#381f12] text-amber-200 rounded-lg p-2 text-xs">
+          <option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+        </select>
+      </div>
+      <div id="names-container" class="flex flex-col gap-2 mb-4"></div>
+      <button id="btn-start" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl text-xs">¡COMENZAR!</button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
