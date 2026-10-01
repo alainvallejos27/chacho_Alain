@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Cacho Boliviano PRO</title>
+  <meta name="theme-color" content="#0b2027" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Fuente estilo manuscrito/papel -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -62,6 +65,8 @@
     #sound-toggle.is-muted { color: #9caaa9; border-color: rgba(156, 170, 169, .22); background: rgba(156, 170, 169, .08); }
     #sound-toggle .sound-icon { font-size: 16px; line-height: 1; }
     .header-actions { display: flex; align-items: center; }
+    #btn-install { display: none; margin-right: 8px; border: 1px solid rgba(213, 230, 123, .35); border-radius: 999px; padding: 9px 12px; background: rgba(213, 230, 123, .1); color: var(--lime); font-size: 11px; font-weight: 800; }
+    #btn-install.is-visible { display: inline-flex; align-items: center; gap: 6px; }
 
     #sec-tapete {
       background: linear-gradient(135deg, #123c3d 0%, #0d3033 58%, #0b292e 100%) !important;
@@ -449,12 +454,19 @@
   <header class="h-12 bg-[#180f0a] border-b border-[#381f12] flex items-center justify-between px-4 shrink-0 z-30">
     <h1 class="text-amber-500 font-black text-sm md:text-base tracking-wide">🎲 CACHO BOLIVIANO</h1>
     <div class="header-actions">
+      <button id="btn-install" type="button" aria-label="Instalar Cacho Boliviano">⬇ Instalar</button>
+      <button id="btn-multiplayer" type="button" class="mr-2 rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-2 text-[11px] font-extrabold text-emerald-200">Multijugador</button>
       <button id="sound-toggle" type="button" aria-pressed="false" title="Activar sonido">
         <span class="sound-icon">🔊</span><span class="sound-label">SONIDO</span>
       </button>
       <button id="btn-new-game" class="bg-amber-700 hover:bg-amber-600 text-amber-100 font-bold text-xs px-3 py-1.5 rounded-lg transition-colors">Nuevo Juego</button>
     </div>
   </header>
+
+  <div id="update-banner" class="fixed bottom-20 left-1/2 z-[70] hidden -translate-x-1/2 items-center gap-3 rounded-xl border border-lime-300/30 bg-[#14363a] px-4 py-3 text-sm text-white shadow-xl md:bottom-5">
+    <span>Hay una actualización disponible.</span>
+    <button id="btn-update" type="button" class="rounded-lg bg-lime-300 px-3 py-2 font-extrabold text-[#142a31]">Actualizar</button>
+  </div>
 
   <!-- CONTENEDOR PRINCIPAL -->
   <main class="flex-1 relative overflow-hidden flex flex-col md:flex-row">
@@ -589,7 +601,35 @@
       </div>
       <div id="names-container" class="flex flex-col gap-2 mb-4"></div>
       <button id="btn-start" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl text-xs">¡COMENZAR!</button>
+      <button id="btn-multiplayer-setup" type="button" class="mt-3 w-full rounded-xl border border-emerald-300/30 bg-emerald-300/10 px-4 py-2.5 text-xs font-extrabold text-emerald-200">Crear o unirse a partida en línea</button>
     </div>
+  </div>
+
+  <div id="multiplayer-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/85 p-4">
+    <section class="w-full max-w-sm rounded-2xl border border-emerald-200/25 bg-[#14363a] p-5 text-white shadow-2xl">
+      <div class="mb-4 flex items-center justify-between">
+        <h2 class="text-base font-extrabold text-lime-200">Partida en línea</h2>
+        <button id="btn-close-multiplayer" type="button" class="rounded-lg px-3 py-1 text-xl text-white/70" aria-label="Cerrar">×</button>
+      </div>
+      <button id="btn-create-room" type="button" class="mb-4 w-full rounded-xl bg-[#f26b4f] px-4 py-3 text-sm font-extrabold">Crear sala nueva</button>
+      <label for="room-code-input" class="mb-1 block text-xs font-bold text-white/70">Unirse con código</label>
+      <div class="flex gap-2">
+        <input id="room-code-input" type="text" maxlength="6" autocomplete="off" placeholder="ABC123" class="min-w-0 flex-1 rounded-xl border border-white/15 bg-[#0b292e] px-3 py-3 text-center font-bold uppercase tracking-widest text-white">
+        <button id="btn-join-room" type="button" class="rounded-xl bg-emerald-700 px-4 text-sm font-extrabold">Unirse</button>
+      </div>
+      <div id="room-info" class="mt-4 hidden rounded-xl border border-white/10 bg-black/15 p-3">
+        <div class="flex items-center justify-between gap-2">
+          <p class="text-xs text-white/70">Código de sala</p>
+          <span id="room-members" class="text-[11px] text-lime-200"></span>
+        </div>
+        <div class="mt-1 flex items-center gap-2">
+          <strong id="room-code" class="flex-1 text-2xl tracking-[0.2em] text-lime-200"></strong>
+          <button id="btn-copy-room" type="button" class="rounded-lg bg-white/10 px-3 py-2 text-xs font-bold">Copiar</button>
+          <button id="btn-leave-room" type="button" class="rounded-lg bg-red-900/60 px-3 py-2 text-xs font-bold">Salir</button>
+        </div>
+      </div>
+      <p id="room-status" class="mt-3 min-h-5 text-xs text-white/70" aria-live="polite"></p>
+    </section>
   </div>
 
   <script type="module" src="/src/main.ts"></script>

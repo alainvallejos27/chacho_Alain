@@ -1,4 +1,11 @@
 import { Dice } from './logic/Dice';
+import { io } from 'socket.io-client';
+
+const socket = io(window.location.origin);
+const savedRoomKey = 'cacho-boliviano-room';
+let roomCode: string | null = localStorage.getItem(savedRoomKey);
+let isRoomHost = localStorage.getItem(`${savedRoomKey}-host`) === 'true';
+let isApplyingRemoteState = false;
 
 let gameMode: 'individual' | 'parejas' = 'individual';
 type SpecialMark = 'mano' | 'huevo';
@@ -87,6 +94,70 @@ function playDiceSound(): void {
 
 const soundToggle = document.getElementById('sound-toggle') as HTMLButtonElement;
 
+type InstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+};
+
+const installButton = document.getElementById('btn-install') as HTMLButtonElement;
+let installPrompt: InstallPromptEvent | null = null;
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+  Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+
+if (!isStandalone) installButton.classList.add('is-visible');
+
+window.addEventListener('beforeinstallprompt', event => {
+  event.preventDefault();
+  installPrompt = event as InstallPromptEvent;
+});
+
+window.addEventListener('appinstalled', () => {
+  installPrompt = null;
+  installButton.classList.remove('is-visible');
+});
+
+installButton.addEventListener('click', async () => {
+  if (!installPrompt) {
+    const isAppleMobile = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    window.alert(isAppleMobile
+      ? 'Para instalarlo, abre el menú Compartir de Safari y elige "Añadir a pantalla de inicio".'
+      : 'Abre el menú de tu navegador y elige "Instalar Cacho Boliviano" o "Añadir a pantalla de inicio".');
+    return;
+  }
+
+  await installPrompt.prompt();
+  const choice = await installPrompt.userChoice;
+  if (choice.outcome === 'accepted') installButton.classList.remove('is-visible');
+  installPrompt = null;
+});
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker.register('/sw.js').then(registration => {
+      const updateBanner = document.getElementById('update-banner')!;
+      const showUpdate = () => updateBanner.classList.replace('hidden', 'flex');
+      if (registration.waiting) showUpdate();
+      registration.addEventListener('updatefound', () => {
+        const installing = registration.installing;
+        installing?.addEventListener('statechange', () => {
+          if (installing.state === 'installed' && navigator.serviceWorker.controller) showUpdate();
+        });
+      });
+      document.getElementById('btn-update')!.addEventListener('click', () => {
+        registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
+      });
+      let reloading = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloading) return;
+        reloading = true;
+        window.location.reload();
+      });
+      window.setInterval(() => void registration.update(), 60 * 60 * 1000);
+    });
+  });
+}
+
 function updateSoundUI(): void {
   soundToggle.classList.toggle('is-muted', !soundEnabled);
   soundToggle.setAttribute('aria-pressed', String(soundEnabled));
@@ -120,7 +191,7 @@ const txtPlayerTurn = document.getElementById('txt-player-turn')!;
 
 function saveGameState(): void {
   if (!players.length) return;
-  localStorage.setItem(savedGameKey, JSON.stringify({
+  const state = {
     gameMode,
     players,
     currentPlayerIdx,
@@ -131,11 +202,20 @@ function saveGameState(): void {
     gameFinished,
     pendingOver,
     dice: diceState.map(item => ({ value: item.dice.value, isSelected: item.isSelected, pos: item.pos }))
-  }));
+  };
+  localStorage.setItem(savedGameKey, JSON.stringify(state));
+  if (roomCode && !isApplyingRemoteState) socket.emit('game:state', { roomCode, state });
 }
 
 function clearSavedGame(): void {
   localStorage.removeItem(savedGameKey);
+}
+
+function getPlayerScore(player: PlayerState): number {
+  return Object.values(player.scores).reduce<number>(
+    (sum, value) => sum + (typeof value === 'number' ? value : 0),
+    0
+  );
 }
 
 function isGameComplete(): boolean {
@@ -149,7 +229,7 @@ function isGameComplete(): boolean {
 
 function showWinner(): void {
   const ranking = [...new Map(players.filter(player => !player.retired).map(player => [player.teamId, player])).values()]
-    .map(player => ({ name: player.teamName, score: Object.values(player.scores).reduce((sum, value) => sum + (typeof value === 'number' ? value : 0), 0) }))
+    .map(player => ({ name: player.teamName, score: getPlayerScore(player) }))
     .sort((a, b) => b.score - a.score);
   const rankingHtml = ranking.map((entry, index) => `<li><strong>${index + 1}°</strong> ${entry.name} <span>${entry.score} puntos</span></li>`).join('');
   const existingModal = document.getElementById('game-over-modal');
@@ -179,8 +259,8 @@ function showWinner(): void {
   document.getElementById('btn-replay-parejas')!.onclick = () => openSetup('parejas');
 }
 
-function restoreSavedGame(): void {
-  const rawState = localStorage.getItem(savedGameKey);
+function restoreSavedGame(sharedState?: string): void {
+  const rawState = sharedState ?? localStorage.getItem(savedGameKey);
   if (!rawState) return;
   try {
     const saved = JSON.parse(rawState);
@@ -228,6 +308,16 @@ function restoreSavedGame(): void {
     if (gameFinished) showWinner();
   } catch {
     clearSavedGame();
+  }
+}
+
+function applySharedGameState(state: unknown): void {
+  if (!state || typeof state !== 'object') return;
+  isApplyingRemoteState = true;
+  try {
+    restoreSavedGame(JSON.stringify(state));
+  } finally {
+    isApplyingRemoteState = false;
   }
 }
 
@@ -279,6 +369,91 @@ const selectCount = document.getElementById('select-count') as HTMLSelectElement
 const namesContainer = document.getElementById('names-container')!;
 const modeInd = document.getElementById('mode-ind')!;
 const modePar = document.getElementById('mode-par')!;
+const multiplayerModal = document.getElementById('multiplayer-modal')!;
+const roomStatus = document.getElementById('room-status')!;
+const roomInfo = document.getElementById('room-info')!;
+
+function updateRoomUI(memberCount?: number): void {
+  roomInfo.classList.toggle('hidden', !roomCode);
+  document.getElementById('room-code')!.textContent = roomCode ?? '';
+  document.getElementById('room-members')!.textContent = memberCount === undefined ? '' : `${memberCount} conectado${memberCount === 1 ? '' : 's'}`;
+}
+
+function setRoom(code: string | null, host = false): void {
+  roomCode = code;
+  isRoomHost = host;
+  if (code) {
+    localStorage.setItem(savedRoomKey, code);
+    localStorage.setItem(`${savedRoomKey}-host`, String(host));
+  } else {
+    localStorage.removeItem(savedRoomKey);
+    localStorage.removeItem(`${savedRoomKey}-host`);
+  }
+  updateRoomUI();
+}
+
+document.getElementById('btn-multiplayer')!.addEventListener('click', () => {
+  updateRoomUI();
+  multiplayerModal.classList.remove('hidden');
+  multiplayerModal.classList.add('flex');
+});
+document.getElementById('btn-multiplayer-setup')!.addEventListener('click', () => {
+  updateRoomUI();
+  multiplayerModal.classList.remove('hidden');
+  multiplayerModal.classList.add('flex');
+});
+document.getElementById('btn-close-multiplayer')!.addEventListener('click', () => {
+  multiplayerModal.classList.add('hidden');
+  multiplayerModal.classList.remove('flex');
+});
+document.getElementById('btn-create-room')!.addEventListener('click', () => {
+  socket.emit('room:create', (result: { ok: boolean; code?: string; error?: string }) => {
+    if (!result.ok || !result.code) {
+      roomStatus.textContent = result.error ?? 'No se pudo crear la sala.';
+      return;
+    }
+    setRoom(result.code, true);
+    roomStatus.textContent = players.length ? 'Sala lista. Comparte el código para invitar.' : 'Sala creada. Comparte el código y luego comienza el juego.';
+    if (players.length) saveGameState();
+  });
+});
+document.getElementById('btn-join-room')!.addEventListener('click', () => {
+  const code = (document.getElementById('room-code-input') as HTMLInputElement).value.trim().toUpperCase();
+  socket.emit('room:join', code, (result: { ok: boolean; code?: string; error?: string; state?: unknown; members?: number }) => {
+    if (!result.ok || !result.code) {
+      roomStatus.textContent = result.error ?? 'No se pudo entrar a la sala.';
+      return;
+    }
+    setRoom(result.code);
+    roomStatus.textContent = result.state ? 'Conectado. La partida está sincronizada.' : 'Conectado. Esperando que el anfitrión inicie la partida.';
+    updateRoomUI(result.members);
+    if (result.state) applySharedGameState(result.state);
+  });
+});
+document.getElementById('btn-copy-room')!.addEventListener('click', async () => {
+  if (!roomCode) return;
+  await navigator.clipboard.writeText(roomCode);
+  roomStatus.textContent = 'Código copiado.';
+});
+document.getElementById('btn-leave-room')!.addEventListener('click', () => {
+  if (roomCode) socket.emit('room:leave', roomCode);
+  setRoom(null);
+  roomStatus.textContent = 'Saliste de la sala.';
+});
+socket.on('room:members', (members: number) => updateRoomUI(members));
+socket.on('game:state', (state: unknown) => applySharedGameState(state));
+socket.on('connect', () => {
+  if (!roomCode) return;
+  socket.emit('room:join', roomCode, (result: { ok: boolean; state?: unknown; members?: number }) => {
+    if (!result.ok) {
+      setRoom(null);
+      roomStatus.textContent = 'La sala ya no existe. Crea una nueva o únete con otro código.';
+      return;
+    }
+    updateRoomUI(result.members);
+    if (result.state) applySharedGameState(result.state);
+  });
+});
 
 function renderNameInputs() {
   namesContainer.innerHTML = '';
@@ -310,6 +485,12 @@ updateCountOptions();
 renderNameInputs();
 
 document.getElementById('btn-start')!.onclick = () => {
+  if (roomCode && !isRoomHost) {
+    roomStatus.textContent = 'Espera a que el anfitrión inicie la partida.';
+    multiplayerModal.classList.remove('hidden');
+    multiplayerModal.classList.add('flex');
+    return;
+  }
   const inputs = document.querySelectorAll('.player-input') as NodeListOf<HTMLInputElement>;
   const sharedBoards = new Map<number, { scores: Record<string, number | string | null>; marks: Record<string, SpecialMark | null> }>();
   players = Array.from(inputs).map((inp, idx) => {
@@ -754,7 +935,7 @@ function updateScoresUI() {
   let total = 0;
 
   const teamTotals = [...new Map(players.filter(player => !player.retired).map(player => [player.teamId, player])).values()]
-    .map(player => ({ teamId: player.teamId, name: player.teamName, score: Object.values(player.scores).reduce((sum, value) => sum + (typeof value === 'number' ? value : 0), 0) }))
+    .map(player => ({ teamId: player.teamId, name: player.teamName, score: getPlayerScore(player) }))
     .sort((a, b) => b.score - a.score);
   const standingsPanel = document.getElementById('standings-panel');
   if (standingsPanel) {
@@ -881,4 +1062,5 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('pagehide', saveGameState);
 window.addEventListener('beforeunload', saveGameState);
 
-restoreSavedGame();
+if (!roomCode) restoreSavedGame();
+updateRoomUI();

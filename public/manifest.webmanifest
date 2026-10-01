@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "Cacho Boliviano PRO",
+  "short_name": "Cacho Boliviano",
+  "description": "Juego de Cacho Boliviano para jugar individualmente o en parejas.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b2027",
+  "theme_color": "#0b2027",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
