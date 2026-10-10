@@ -7,7 +7,7 @@ export class Dice {
 
   public roll(): number {
     const cryptoArray = new Uint32Array(1);
-    window.crypto.getRandomValues(cryptoArray);
+    globalThis.crypto.getRandomValues(cryptoArray);
     this.value = (cryptoArray[0] % 6) + 1;
     return this.value;
   }

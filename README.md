@@ -20,7 +20,15 @@ En la segunda ejecuta la web:
 npm run dev
 ```
 
-Abre la dirección que muestre Vite. Desde la pantalla inicial, pulsa **Crear o unirse a partida en línea**. Una persona crea la sala, comparte el código y las demás se unen; el anfitrión configura y comienza la partida.
+Abre la dirección que muestre Vite. Desde el lobby, pulsa **Jugar Local / Práctica** para iniciar una partida local, **Crear Sala Online** para crear y compartir un código, o **Unirse a Partida Online** para entrar con un código. El anfitrión configura y comienza la partida en línea.
+
+## Estructura del frontend
+
+`index.html` contiene únicamente los metadatos y el punto de montaje `#app`. `src/main.ts` importa los estilos e inicia `src/app.ts`, que monta las vistas y el router. Cada vista genera su propio marcado; el controlador de juego conserva los eventos y reglas existentes, mientras que los tipos compartidos, la lógica pura, la persistencia, Socket.io, audio y funciones PWA están en módulos separados.
+
+Tailwind CSS se compila localmente con el plugin de Vite. Comprueba el proyecto con `npm run build` y `npx tsc --noEmit`.
+
+Las vistas usan `render()`, `mount(container)` y `unmount()`; el router monta una sola vista y limpia la anterior. Para conectar autenticación, un proveedor debe escuchar `cacho:auth:login` y `cacho:auth:register`, cancelar el evento con `preventDefault()` y responder mediante `event.detail.resolve(user)` o `event.detail.reject(error)`. El dashboard administrativo recibe `cacho:admin:users`, `cacho:admin:rooms` y `cacho:admin:stats`; sus acciones se emiten como eventos `cacho:admin:*`, que el servicio conectado debe cancelar para confirmar que fueron atendidas. Sin proveedor, la interfaz informa que la operación no está configurada en lugar de simular un éxito.
 
 ## Producción
 

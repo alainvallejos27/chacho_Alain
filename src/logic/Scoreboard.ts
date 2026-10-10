@@ -1,19 +1,6 @@
-export interface PlayerScore {
-  balas?: number;
-  tontos?: number;
-  tricas?: number;
-  cuadras?: number;
-  quinas?: number;
-  senas?: number;
-  escalera?: number;
-  full?: number;
-  poker?: number;
-  grande1?: number | string;
-  grande2?: number | string;
-}
+import type { PlayerScore } from '../types/game.types';
 
 export class Scoreboard {
-  // Evalúa los tiros de dados y devuelve los puntajes disponibles
   public static evaluate(diceValues: number[], isMano: boolean): PlayerScore {
     const counts: { [key: number]: number } = {};
     diceValues.forEach(v => counts[v] = (counts[v] || 0) + 1);
@@ -34,7 +21,8 @@ export class Scoreboard {
       senas: (counts[6] || 0) * 6,
       escalera: isEscalera ? (isMano ? 25 : 20) : 0,
       full: isFull ? (isMano ? 35 : 30) : 0,
-      poker: isPoker ? (isMano ? 45 : 40) : 0
+      poker: isPoker ? (isMano ? 45 : 40) : 0,
+      grande: freqs.includes(5) ? 50 : 0
     };
   }
 }
